@@ -1,4 +1,5 @@
-These scripts read oscilloscope data from the Texas Instruments [DRV425EVM](https://www.ti.com/tool/DRV425EVM) and the magnetic sciences [MC90R](https://magneticsciences.com/mc90r/) and convert voltages to magnetic field measurements. Described below are the processes followed for these two sensors.
+These scripts read oscilloscope data from the Texas Instruments [DRV425EVM](https://www.ti.com/tool/DRV425EVM) and the magnetic sciences [MC90R](https://magneticsciences.com/mc90r/) and convert voltages to magnetic field measurements. For
+brevity, I refer to the DRV425EVM as simply "425." Described below are the processes followed for these two sensors.
 
 # DRV425EVM
 1. Scope data is read in as a Pandas dataframe, vertical offset is subtracted from voltages. New column titled "V_out - Offset (V)" is inserted with the un-offset voltages in Volts..
