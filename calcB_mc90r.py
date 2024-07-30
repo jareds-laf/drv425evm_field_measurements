@@ -10,19 +10,32 @@ def normalize_path(in_path):
     # A quick function to ensure that any input paths are properly referenced
 	return os.path.normpath(os.path.realpath(os.path.expanduser(in_path)))
 
-def calcB_mc90r(csv_path):
+def calcB_mc90r(csv_path, atten=10, channel=2):
     # Read the oscilloscope data file and MC90R calibration data
+    # Read the CSV file
     csv_path = normalize_path(csv_path)
     global scope_data
-    scope_data = pd.read_csv(csv_path, header=None)
-    scope_data.rename(columns={3: "Time (s)", 4: "V_out (V)"}, inplace=True)
-
+    scope_data = pd.read_csv(csv_path, skiprows=13)
+    
     calibration_path = normalize_path(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mc90r_calibration_teslas.csv'))
     calibration_data = pd.read_csv(calibration_path)
 
-    # Subtract the vertical offset
-    vertical_offset = pd.to_numeric(scope_data[1][9])  # B10 corresponds to 1, 9 in 0-based index
-    scope_data.insert(6, column='V_out - Offset (V)', value=scope_data['V_out (V)'] - vertical_offset)
+    global ch
+    ch = channel
+    
+    # Note that the exported waveform from the MSO24 does not include vertical
+    # offset information. If your oscilloscope does, you should subtract it
+    # from the voltage output column here. Here is an example of how to do it
+    # with the Tektronix TDS2022B:
+
+    # Subtract vertical offset
+        # B10 corresponds to [1, 9] in 0-based index
+    # vertical_offset = pd.to_numeric(scope_data[1][9])
+    # scope_data.insert(6, column='V_out - Offset (V)', \
+    #                   value=scope_data['V_out (V)'] - vertical_offset)
+
+    # Divide by attenuation
+    scope_data.iloc[:, 1] = scope_data.iloc[:, 1] / atten
 
     # Convert Vo to field using the calibration data
     target_freq = 2.0
@@ -32,7 +45,7 @@ def calcB_mc90r(csv_path):
     print(scope_data.head())
 
     # Save the modified DataFrame to a new CSV file
-    output_file_path = normalize_path(r'G:\My Drive\Other\REUs\Summer 2024\UCD\Scope Data\ALL0006\OUT_F0006CH2.csv')
+    output_file_path = normalize_path(r'G:\My Drive\Other\REUs\Summer 2024\UCD\Scope Data\MSO24\OUT_F0006CH2.csv')
     # output_file_path = normalize_path('D:\ALL0005\OUT_F0005CH1.csv')
 
     # scope_data.to_csv(output_file_path, index=False, header=False)
@@ -53,4 +66,4 @@ def plot_mc90r():
     sns.relplot(data=scope_data, x='Time (s)', y='B (T)', kind='line')
 
 if __name__ == '__main__':
-    calcB_mc90r(r'G:\My Drive\Other\REUs\Summer 2024\UCD\Scope Data\ALL0006\F0006CH2.csv')
+    calcB_mc90r(r'G:\My Drive\Other\REUs\Summer 2024\UCD\Scope Data\MSO24\001\Tek000_nogating_000.csv', atten=10, ch=2)
