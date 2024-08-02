@@ -1,23 +1,18 @@
 import pandas as pd
 import os
-import pint
 import matplotlib.pyplot as plt
 import numpy as np
-import seaborn as sns
 
 '''This script reads the oscilloscope data originally measured by the DRV425EVM
 and converts the voltage measurements to magnetic field measurements. For
 brevity, I refer to the DRV425EVM as simply "425."
 '''
 
-# Define the unit registry
-ureg = pint.UnitRegistry(auto_reduce_dimensions=True)
-
 def normalize_path(in_path):
     # A quick function to ensure that any input paths are properly referenced
 	return os.path.normpath(os.path.realpath(os.path.expanduser(in_path)))
 
-def calcB_425(csv_path, R_shunt=100, G=4, Gfg=12.2, atten=10, channel=2):
+def calcB_425(csv_path, R_shunt=100, G=4, Gfg=12.2, channel=2):
     '''Evaluate the oscilloscope data from the DRV425EVM to convert voltages
     to magnetic fields. Note that this program assumes the usage of a
     Tektronix MSO24 oscilloscope with firmware version 2.2.6.1052, exporting
@@ -28,7 +23,6 @@ def calcB_425(csv_path, R_shunt=100, G=4, Gfg=12.2, atten=10, channel=2):
         - R_shunt: The shunt resistor value in Ohms
         - G: The gain of the DRV425EVM in V/V
         - Gfg: The gain of the DRV425EVM in mA/mT
-        - atten: The oscilloscope attenuation factor
         - ch: The channel number to read from the oscilloscope data
     '''
 
@@ -41,6 +35,7 @@ def calcB_425(csv_path, R_shunt=100, G=4, Gfg=12.2, atten=10, channel=2):
 
     global ch
     ch = channel
+
     # Note that the exported waveform from the MSO24 does not include vertical
     # offset information. If your oscilloscope does, you should subtract it
     # from the voltage output column here. Here is an example of how to do it
@@ -51,9 +46,6 @@ def calcB_425(csv_path, R_shunt=100, G=4, Gfg=12.2, atten=10, channel=2):
     # vertical_offset = pd.to_numeric(scope_data[1][9])
     # scope_data.insert(6, column='V_out - Offset (V)', \
     #                   value=scope_data['V_out (V)'] - vertical_offset)
-
-    # Divide by attenuation
-    scope_data.iloc[:, 1] = scope_data.iloc[:, 1] / atten
 
     # TODO: Figure out a better way to put in R, G, and Gfg into the output csv
     # Populate C1:E1 with editable 425 values
@@ -68,7 +60,11 @@ def calcB_425(csv_path, R_shunt=100, G=4, Gfg=12.2, atten=10, channel=2):
 
     # Populate column C with the final B field based on formula 1 from
     # the DRV425EVM datasheet: B = (V_out) / (R_shunt * G * Gfg)
-    scope_data.insert(2, column='B', value= scope_data[f'CH{ch}'] / (R_shunt * G * Gfg))
+    # Note that this assumes the reference voltage was subtracted from the
+    # output voltage.
+    scope_data.insert(2, column='B', value = scope_data[f'CH{ch}'] / (R_shunt * G * Gfg))
+    scope_data.rename(columns={f'CH{ch}': "V"}, inplace=True)
+
     print(scope_data.head())
 
     # TODO: Implement this:
@@ -81,20 +77,32 @@ def calcB_425(csv_path, R_shunt=100, G=4, Gfg=12.2, atten=10, channel=2):
 
 def plot_425():
     # Plot the B (T) vs. Time (s) oscilloscope data
-    custom_params = {"axes.spines.left": True, "axes.spines.bottom": True,\
-                    "axes.spines.right": False, "axes.spines.top": False,\
-                    "grid.linestyle": '-',\
-                    "grid.alpha": 0.5,\
-                    "grid.linewidth": 0.5,\
-                    "grid.color": 'black',\
-                    "axes.edgecolor": 'black',\
-                    "axes.linewidth": 0.75}
-    
-    sns.set_theme(style="whitegrid", rc=custom_params)
-    ax = sns.relplot(data=scope_data, x='TIME', y=f'CH{ch}', kind='line')
-    ax.set(xlabel='Time (s)', ylabel='B (T)')
 
+    # Apply custom parameters
+    custom_params = {
+        "axes.spines.left": True,
+        "axes.spines.bottom": True,
+        "axes.spines.right": True,
+        "axes.spines.top": True,
+        "grid.linestyle": '-',
+        "grid.alpha": 0.5,
+        "grid.linewidth": 0.5,
+        "grid.color": 'black',
+        "axes.edgecolor": 'black',
+        "axes.linewidth": 0.75
+    }
+
+    plt.rcParams.update(custom_params)
+
+    # Plot data
+    fig, ax = plt.subplots()
+    ax.plot(scope_data['TIME'], scope_data['B'])
+
+    ax.set_xlabel('Time (s)')
+    ax.set_ylabel('B (T)')
+    ax.grid(True)
+    plt.show()
 
 if __name__ == '__main__':
-    calcB_425(csv_path=r'G:\My Drive\Other\REUs\Summer 2024\UCD\Scope Data\MS024\001\Tek000_nogating_allchannels_000_ALL.csv', R_shunt=100, G=4, Gfg=12.2, atten=10, channel=2)
+    calcB_425(csv_path=r'G:\My Drive\Other\REUs\Summer 2024\UCD\Scope Data\MS024\001\Tek000_nogating_allchannels_000_ALL.csv', R_shunt=100, G=4, Gfg=12.2, channel=2)
     plot_425()
