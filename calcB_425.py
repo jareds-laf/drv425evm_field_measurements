@@ -35,6 +35,7 @@ def calcB_425(csv_path_in, R_shunt=100, G=4, Gfg=12.2, channel=2):
         csv_path_in = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")])
         print(f'Reading data from {csv_path_in}')
 
+    # Work around to allow the DataFrame to be accessed globally
     global csv_path
     csv_path = csv_path_in
 

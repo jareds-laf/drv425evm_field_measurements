@@ -1,43 +1,61 @@
 import pandas as pd
 import os
-import pint
-import seaborn as sns
-
-# Define the unit registry
-ureg = pint.UnitRegistry(auto_reduce_dimensions=True)
+import matplotlib.pyplot as plt
+import numpy as np
+from tkinter import filedialog
 
 def normalize_path(in_path):
     # A quick function to ensure that any input paths are properly referenced
 	return os.path.normpath(os.path.realpath(os.path.expanduser(in_path)))
 
-def calcB_mc90r(csv_path, atten=10, channel=2):
-    # Read the oscilloscope data file and MC90R calibration data
-    # Read the CSV file
-    csv_path = normalize_path(csv_path)
-    global scope_data
-    scope_data = pd.read_csv(csv_path, skiprows=13)
-    
-    #TODO: Interp!
+def calcB_mc90r(csv_path_in, channel=1):
+    """Evaluate the oscilloscope data from the MC90R to convert voltages to
+    magnetic fields. Note that this program assumes the usage of a Tektronix
+    MSO24 oscilloscope with firmware version 2.2.6.1052, exporting data with
+    "ALL" selected as the source.
 
+    Inputs:
+        - csv_path_in: The path to the oscilloscope data CSV file. Leave blank
+                       to open a file dialog
+        - channel: The channel number to read from the oscilloscope data
+    """
+
+    # Read the oscilloscope data into a Pandas DataFrame
+    if csv_path_in:
+        print(f'Reading data from {csv_path_in}')       
+    else:
+        csv_path_in = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")])
+        print(f'Reading data from {csv_path_in}')
+
+    """Defining global variables. csv_path is defined separately from
+    csv_path_in to allow for global access of the path to the CSV file.
+    """
+    global csv_path
+    global ch
+    global scope_data
+
+    csv_path = csv_path_in    
+    ch = channel
+    scope_data = pd.read_csv(csv_path, skiprows=13)
+
+    # Read the calibration data into a Pandas DataFrame
     calibration_path = normalize_path(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mc90r_calibration_teslas.csv'))
     calibration_data = pd.read_csv(calibration_path)
 
-    global ch
-    ch = channel
-    
-    # Note that the exported waveform from the MSO24 does not include vertical
-    # offset information. If your oscilloscope does, you should subtract it
-    # from the voltage output column here. Here is an example of how to do it
-    # with the Tektronix TDS2022B:
+    print(calibration_data.head())
+    #TODO: Interp!
+    x = 1
+
+    """Note that the exported waveform from the MSO24 does not include vertical
+    offset information. If your oscilloscope does, you should subtract it
+    from the voltage output column here. Here is an example of how to do it
+    with the Tektronix TDS2022B:
+    """
 
     # Subtract vertical offset
-        # B10 corresponds to [1, 9] in 0-based index
     # vertical_offset = pd.to_numeric(scope_data[1][9])
     # scope_data.insert(6, column='V_out - Offset (V)', \
     #                   value=scope_data['V_out (V)'] - vertical_offset)
-
-    # Divide by attenuation
-    scope_data.iloc[:, 1] = scope_data.iloc[:, 1] / atten
 
     # Convert Vo to field using the calibration data
     target_freq = 2.0
@@ -68,4 +86,5 @@ def plot_mc90r():
     sns.relplot(data=scope_data, x='Time (s)', y='B (T)', kind='line')
 
 if __name__ == '__main__':
-    calcB_mc90r(r'G:\My Drive\Other\REUs\Summer 2024\UCD\Scope Data\MSO24\001\Tek000_nogating_000.csv', atten=10, ch=2)
+    calcB_mc90r(csv_path_in=r'G:\My Drive\Other\REUs\Summer 2024\UCD\Scope Data\MS024\001\tektest_000_ALL.csv', channel=1)
+    # calcB_mc90r(csv_path_in='', channel=1)

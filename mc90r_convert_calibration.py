@@ -1,9 +1,5 @@
 import pandas as pd
 import os
-import pint
-
-# Define the unit registry
-ureg = pint.UnitRegistry(auto_reduce_dimensions=True)
 
 def normalize_path(in_path):
     # A quick function to ensure that any input paths are properly referenced
@@ -24,7 +20,7 @@ calibration_data.loc[:, 'Field/Vo (mG/mV)'] = calibration_data['Field/Vo (mG/mV)
 
 
 # Rename columns appropriately
-calibration_data.rename(columns={'Vo/Field (mV/mG)': 'Vo/Field (mV/mT)', 'Field/Vo (mG/mV)': 'Field/Vo (mT/mV)'}, inplace=True)
+calibration_data.rename(columns={'Freq (kHz)': 'freq', 'Vo/Field (mV/mG)': 'Vo/B', 'Field/Vo (mG/mV)': 'B/Vo'}, inplace=True)
 
 print(calibration_data.head())
 
