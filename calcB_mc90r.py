@@ -17,6 +17,8 @@ def calcB_mc90r(csv_path, atten=10, channel=2):
     global scope_data
     scope_data = pd.read_csv(csv_path, skiprows=13)
     
+    #TODO: Interp!
+
     calibration_path = normalize_path(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mc90r_calibration_teslas.csv'))
     calibration_data = pd.read_csv(calibration_path)
 
